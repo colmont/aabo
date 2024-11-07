@@ -20,8 +20,21 @@ conda install -c conda-forge git-lfs
 To set up the environment we used to run all tasks for this paper, we recommend using docker. 
 You can use the public docker image nmaus/opt (https://hub.docker.com/r/nmaus/opt), or build it yourself using the docker/Dockerfile. 
 
+### Conda/pip
+Alternatively, you can download all necessary packages using conda and pip. We recommend the following sequence.
+First, create a conda environment:
+```Bash
+conda create --name aabo python=3.10
+conda activate aabo
+```
+In this new environment, install PyTorch following the official guidelines for your OS: https://pytorch.org/get-started/locally/.
+Afterwards, install all other necessary packages using pip:
+```Bash
+pip install -r requirements.txt
+```
+
 ### LassoBench DNA Task
-The above nmaus/opt docker image has all needed requirements to runn all tasks in the paper except for the LassoBench DNA task. This task requires the following additional steps to setup. These steps can be done after initializing the nmaus/opt docker image which has all other requirements for running AABO. 
+The above nmaus/opt docker image has all needed requirements to run all tasks in the paper except for the LassoBench DNA task. This task requires the following additional steps to setup. These steps can be done after initializing the nmaus/opt docker image which has all other requirements for running AABO. 
 
 ```Bash
 git clone https://github.com/ksehic/LassoBench.git

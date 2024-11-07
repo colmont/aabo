@@ -1,0 +1,39 @@
+# haydnj/torch:bayes-lqo
+networkx
+sqlglot==18.15.0
+loguru
+matplotlib
+peewee
+psycopg2-binary
+pydot
+hypothesis
+localstack
+boto3
+psycopg[binary]
+seaborn
+bokeh
+awscli-local
+celery
+botorch
+gpytorch
+wandb
+numpy
+tqdm
+lightning
+scipy
+datasets
+fire
+
+# add support for molecule tasks 
+rdkit
+selfies 
+guacamol 
+scipy==1.10
+
+# add support for Lunar Lander and Robot Pushing tasks 
+multiprocess
+swig
+box2d
+box2d-kengz
+gym 
+box2d-py
