@@ -1,4 +1,3 @@
-import math
 import torch
 from torch.quasirandom import SobolEngine
 from botorch.acquisition import qExpectedImprovement
@@ -46,36 +45,36 @@ def generate_batch(
         lb = lb*weights 
         ub = ub*weights 
     if acqf == "logei":
-        qLogEI = qLogExpectedImprovement(model=model.cuda(), best_f=Y.max().cuda())
-        X_next, _ = optimize_acqf(qLogEI,bounds=torch.stack([lb, ub]).cuda(),q=batch_size, num_restarts=num_restarts,raw_samples=raw_samples,)
+        qLogEI = qLogExpectedImprovement(model=model.to(device), best_f=Y.max().to(device))
+        X_next, _ = optimize_acqf(qLogEI,bounds=torch.stack([lb, ub]).to(device),q=batch_size, num_restarts=num_restarts,raw_samples=raw_samples,)
     elif acqf == "ei":
-        ei = qExpectedImprovement(model.cuda(), Y.max().cuda() ) 
-        X_next, _ = optimize_acqf(ei,bounds=torch.stack([lb, ub]).cuda(),q=batch_size, num_restarts=num_restarts,raw_samples=raw_samples,)
+        ei = qExpectedImprovement(model.to(device), Y.max().to(device) ) 
+        X_next, _ = optimize_acqf(ei,bounds=torch.stack([lb, ub]).to(device),q=batch_size, num_restarts=num_restarts,raw_samples=raw_samples,)
     elif acqf == "ts":
         dim = X.shape[-1]
-        lb = lb.cuda()
-        ub = ub.cuda() 
+        lb = lb.to(device)
+        ub = ub.to(device) 
         sobol = SobolEngine(dim, scramble=True) 
-        pert = sobol.draw(n_candidates).to(dtype=dtype).cuda()
+        pert = sobol.draw(n_candidates).to(dtype=dtype).to(device)
         pert = lb + (ub - lb) * pert
-        lb = lb.cuda()
-        ub = ub.cuda() 
+        lb = lb.to(device)
+        ub = ub.to(device) 
         # Create a perturbation mask 
         prob_perturb = min(20.0 / dim, 1.0)
         mask = (torch.rand(n_candidates, dim, dtype=dtype, device=device)<= prob_perturb)
         ind = torch.where(mask.sum(dim=1) == 0)[0]
         mask[ind, torch.randint(0, dim - 1, size=(len(ind),), device=device)] = 1
-        mask = mask.cuda()
+        mask = mask.to(device)
         # Create candidate points from the perturbations and the mask
         X_cand = x_center.expand(n_candidates, dim).clone()
-        X_cand = X_cand.cuda()
+        X_cand = X_cand.to(device)
         X_cand[mask] = pert[mask]
         thompson_sampling = MaxPosteriorSampling(
             model=model,
             replacement=False,
         ) 
         with torch.no_grad():
-            X_next = thompson_sampling(X_cand.cuda(), num_samples=batch_size )
+            X_next = thompson_sampling(X_cand.to(device), num_samples=batch_size )
     else:
         assert 0, f"unsupported acqf: {acqf}"
 
