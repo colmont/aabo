@@ -1,0 +1,52 @@
+seed: 42
+# defaults:
+#   - model: default
+#   - acq_opt: highdim
+#   - acq_func: ei
+#   - benchmark: hartmann6
+
+# general
+float_dtype_as_int: 64
+verbose: true
+wandb_entity: ""
+wandb_project_name: ""
+run_id: ""
+
+# task_id: "rover"
+# acq_func: "ei"
+# use_kg: false
+
+# model
+lr: 0.01
+x_next_lr: 0.001
+train_bsz: 32
+n_update_epochs: 5
+max_allowed_n_failures_improve_loss: 3
+max_allowed_n_epochs: 30
+n_warm_start_epochs: 10
+n_inducing_pts: 100
+update_on_n_pts: 100
+grad_clip: 2.0
+
+eulbo: true
+use_turbo: true
+ablation1_fix_indpts_and_hypers: false
+ablation2_fix_hypers: false
+moss23_baseline: false
+inducing_pt_init_w_moss23: true
+exact_gp_baseline: false
+alternate_eulbo_updates: true
+normalize_ys: true
+ppgpr: false
+
+# will be removed later on
+task_id: "rover"
+acq_func: "ei"
+use_kg: false
+bsz: 20
+max_n_oracle_calls: 2000
+num_initialization_points: 100
+init_mol_tasks_w_guacamol_data: null
+num_kg_samples: null
+num_mc_samples_qei: 64
+use_botorch_stable_log_softplus: false

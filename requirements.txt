@@ -35,3 +35,6 @@ multiprocess
 swig
 gym 
 box2d-py
+
+# better configs with hydra
+hydra-core

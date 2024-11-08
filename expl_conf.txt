@@ -1,0 +1,36 @@
+task_id: String id for optimization task in task_id_to_objective dict 
+seed: Random seed to be set. If None, no particular random seed is set
+wandb_entity: Username for your wandb account for wandb logging
+wandb_project_name: Name of wandb project where results will be logged, if none specified, will use default f"run-aabo-{task_id}"
+max_n_oracle_calls: Max number of oracle calls allowed (budget). Optimization run terminates when this budget is exceeded
+bsz: Acquisition batch size
+train_bsz: batch size used for model training/updates
+num_initialization_points: Number of initial random data points used to kick off optimization
+lr: Learning rate for model updates
+x_next_lr: Learning rate for x next updates with EULBO method 
+acq_func: Acquisition function used for warm-starting model, must be either ei, logei, or ts (logei--> Log Expected Imporvement, ei-->Expected Imporvement, ts-->Thompson Sampling)
+n_update_epochs: Number of epochs to update the model for on each optimization step
+n_inducing_pts: Number of inducing points for GP
+grad_clip: clip the gradeint at this value during model training 
+eulbo: If True, use EULBO for model training and canidate selection (AABO), otherwise use the standard ELBO (i.e. standard BO baselines).
+use_turbo: If True, use trust region BO, used for higher-dim tasks in the paper 
+use_kg: If True, use EULBO-KG. Otherwise, use EULBO-EI 
+exact_gp_baseline: If True, instead of AABO run baseline of vanilla BO with exact GP 
+ablation1_fix_indpts_and_hypers: If True, run AABO ablation from paper where inducing points and hyperparams remain fixed (not udated by EULBO)
+ablation2_fix_hypers: If True, run AABO ablation from paper where hyperparams remain fixed (not udated by EULBO)
+moss23_baseline: If True, instead of AABO run the moss et al. 2023 paper method baseline (use inducing point selection method of every iteration of optimization)
+inducing_pt_init_w_moss23: If True, use moss et al. 2023 paper method to initialize inducing points at the start of optimizaiton 
+normalize_ys: If True, normalize objective values for training (recommended, typical when using GP models)
+max_allowed_n_failures_improve_loss: We train model until the loss fails to improve for this many epochs
+max_allowed_n_epochs: Although we train to convergence, we also cap the number of epochs to this max allowed value
+n_warm_start_epochs: Number of epochs used to warm start the GP model with standard ELBO before beginning training with EULBO
+alternate_eulbo_updates: If true, we alternate updates of model and x_next when training with EULBO (imporves training convergence and stability)
+update_on_n_pts: Update model on this many data points on each iteration.
+num_kg_samples: number of samples used to compute log utility with KG 
+num_mc_samples_qei: number of MC samples used to ocmpute log utility with aEI 
+float_dtype_as_int: specify integer either 32 or 64, dictates whether to use torch.float32 or torch.float64 
+use_botorch_stable_log_softplus: if True, use botorch new implementation of log softplus (https://botorch.org/api/_modules/botorch/utils/safe_math.html#log_softplus)
+init_mol_tasks_w_guacamol_data: if True, use initialization data from guacamol dataset for molecule optimization tasks 
+verbose: if True, print optimization progress updates 
+ppgpr:  if True, use PPGPR instead of SVGP 
+run_id: Optional string run id. Only use is for wandb logging to identify a specific ru
