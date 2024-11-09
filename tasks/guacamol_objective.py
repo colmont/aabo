@@ -111,6 +111,7 @@ class GuacamolObjective:
         self.vae = InfoTransformerVAE(dataset=self.dataobj)
         # load in state dict of trained model:
         if self.path_to_vae_statedict:
+            self.path_to_vae_statedict = "/Users/Colin/code/aabo/tasks/utils/selfies_vae/selfies-vae-state-dict.pt"
             state_dict = torch.load(self.path_to_vae_statedict) 
             self.vae.load_state_dict(state_dict, strict=True) 
         self.vae = self.vae.to(device)

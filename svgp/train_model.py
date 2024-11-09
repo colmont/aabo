@@ -89,7 +89,7 @@ def update_model_and_generate_candidates_eulbo(
     max_allowed_n_epochs=100,
     alternate_updates=True,
     num_kg_samples=64, 
-    use_kg=False,
+    acq_fun="KG",
     dtype=torch.float64,
     num_mc_samples_qei=64,
     ablation1_fix_indpts_and_hypers=False,
@@ -135,7 +135,7 @@ def update_model_and_generate_candidates_eulbo(
                 train_loader=train_loader,
                 n_epochs=n_epochs,
                 max_allowed_n_failures_improve_loss=max_allowed_n_failures_improve_loss,
-                use_kg=use_kg,
+                acq_fun=acq_fun, 
                 acquisition_bsz=acquisition_bsz,
                 normed_best_f=normed_best_f,
                 num_mc_samples_qei=num_mc_samples_qei,
@@ -178,7 +178,7 @@ def eulbo_training_loop(
     train_loader,
     n_epochs,
     max_allowed_n_failures_improve_loss,
-    use_kg,
+    acq_fun,
     acquisition_bsz,
     normed_best_f,
     num_mc_samples_qei,
@@ -198,7 +198,6 @@ def eulbo_training_loop(
     model.train()
     init_x_next = copy.deepcopy(init_x_next)
     x_next = Variable(init_x_next, requires_grad=True)
-    base_samples = torch.randn(num_mc_samples_qei, acquisition_bsz).to(device=device).to(dtype=dtype) 
     if mll is None:
         if ppgpr: 
             mll = gpytorch.mlls.PredictiveLogLikelihood(model.likelihood, model, num_data=n_train)
@@ -221,7 +220,11 @@ def eulbo_training_loop(
     x_next_optimizer = torch.optim.Adam([{'params': x_next},], lr=x_next_lr)
     model_optimizer = torch.optim.Adam([{'params': model_params_to_update, 'lr':lr} ], lr=lr)
     joint_optimizer = torch.optim.Adam([{'params': x_next,},{'params': model_params_to_update, 'lr':lr} ], lr=lr)
-    if use_kg:
+
+    base_samples = None
+    kg_samples = None
+    zs = None 
+    if acq_fun == "kg":
         kg_samples, zs = get_kg_samples_and_zs(
             model=model,
             dim=dim,
@@ -231,9 +234,11 @@ def eulbo_training_loop(
             acquisition_bsz=acquisition_bsz,
             dtype=dtype,
         )
+    elif acq_fun == "ei":
+        base_samples = torch.randn(num_mc_samples_qei, acquisition_bsz).to(device=device).to(dtype=dtype) 
     else:
-        kg_samples = None
-        zs = None 
+        raise ValueError(f"Invalid acquisition function: {acq_fun}")
+
     while continue_training_condition:
         total_loss = 0
         for (inputs, scores) in train_loader:
@@ -245,7 +250,7 @@ def eulbo_training_loop(
             output = model(inputs.to(device))
             nelbo = -mll(output, scores.to(device))
             expected_log_utility_x_next = get_expected_log_utility_x_next(
-                use_kg=use_kg,
+                acq_fun=acq_fun, 
                 acquisition_bsz=acquisition_bsz,
                 model=model,
                 x_next=x_next,

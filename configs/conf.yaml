@@ -12,23 +12,22 @@ wandb_entity: ""
 wandb_project_name: ""
 run_id: ""
 
-# task_id: "rover"
-# acq_func: "ei"
-# use_kg: false
-
-# model
+# elbo
 lr: 0.01
-x_next_lr: 0.001
 train_bsz: 32
-n_update_epochs: 5
 max_allowed_n_failures_improve_loss: 3
 max_allowed_n_epochs: 30
-n_warm_start_epochs: 10
+ppgpr: false
+n_update_epochs: 5
 n_inducing_pts: 100
 update_on_n_pts: 100
 grad_clip: 2.0
 
+# eulbo
+x_next_lr: 0.001
+n_warm_start_epochs: 10
 eulbo: true
+
 use_turbo: true
 ablation1_fix_indpts_and_hypers: false
 ablation2_fix_hypers: false
@@ -37,16 +36,15 @@ inducing_pt_init_w_moss23: true
 exact_gp_baseline: false
 alternate_eulbo_updates: true
 normalize_ys: true
-ppgpr: false
+init_mol_tasks_w_guacamol_data: false
+task_id: "fexo"
 
-# will be removed later on
-task_id: "rover"
-acq_func: "ei"
-use_kg: false
-bsz: 20
-max_n_oracle_calls: 2000
-num_initialization_points: 100
-init_mol_tasks_w_guacamol_data: null
+# x_next
+acq_fun: "ei"
 num_kg_samples: null
 num_mc_samples_qei: 64
 use_botorch_stable_log_softplus: false
+
+bsz: 20
+max_n_oracle_calls: 20000
+num_initialization_points: 100

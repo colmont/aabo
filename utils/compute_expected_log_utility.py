@@ -6,7 +6,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 softplus_func = torch.nn.Softplus()
 
 def get_expected_log_utility_x_next(
-    use_kg,
+    acq_fun,
     acquisition_bsz,
     model,
     x_next,
@@ -17,7 +17,7 @@ def get_expected_log_utility_x_next(
     num_mc_samples_qei,
     use_botorch_stable_log_softplus=False,
 ):
-    if use_kg:
+    if acq_fun == "kg":
         if acquisition_bsz == 1:
             expected_log_utility_x_next = get_expected_log_utility_knowledge_gradient(
                 model=model,
@@ -36,7 +36,7 @@ def get_expected_log_utility_x_next(
                 normed_best_f=normed_best_f, 
                 use_botorch_stable_log_softplus=use_botorch_stable_log_softplus,
             ) 
-    else:
+    elif acq_fun == "ei":
         if acquisition_bsz == 1:
             expected_log_utility_x_next = get_expected_log_utility_ei( 
                 model=model, 
@@ -53,6 +53,8 @@ def get_expected_log_utility_x_next(
                 num_mc_samples=num_mc_samples_qei,
                 use_botorch_stable_log_softplus=use_botorch_stable_log_softplus,
             )
+    else:
+        raise ValueError(f"Invalid acquisition function: {acq_fun}")
 
     return expected_log_utility_x_next.mean()
 

@@ -6,7 +6,6 @@ import torch
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-
 def set_seed(seed=None):
     if device == "cuda":
         torch.backends.cuda.matmul.allow_tf32 = False
