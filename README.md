@@ -30,6 +30,7 @@ conda activate aabo
 In this new environment, install PyTorch following the official guidelines for your OS: https://pytorch.org/get-started/locally/.
 Afterwards, install all other necessary packages using pip:
 ```Bash
+pip install swig
 pip install -r requirements.txt
 ```
 

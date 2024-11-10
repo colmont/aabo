@@ -32,7 +32,6 @@ scipy==1.10
 
 # add support for Lunar Lander and Robot Pushing tasks 
 multiprocess
-swig
 gym 
 box2d-py
 
