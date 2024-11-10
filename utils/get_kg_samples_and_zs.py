@@ -10,7 +10,6 @@ def get_kg_samples_and_zs(
     lb,
     num_kg_samples,
     acquisition_bsz,
-    dtype,
 ):
     # Use ts to initialize kg_samples 
     thompson_sampling = MaxPosteriorSampling(
@@ -19,7 +18,7 @@ def get_kg_samples_and_zs(
     ) 
     n_ts_candidates = min(5000, max(2000, 200 * dim)) 
     sobol = SobolEngine(dim, scramble=True) 
-    ts_x_cands = sobol.draw(n_ts_candidates).to(device=device).to(dtype=dtype)
+    ts_x_cands = sobol.draw(n_ts_candidates).to(device=device)
     ts_x_cands = ts_x_cands*(ub - lb) + lb 
     with torch.no_grad():
         kg_samples = thompson_sampling(ts_x_cands, num_samples=num_kg_samples ) 

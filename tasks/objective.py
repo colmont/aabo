@@ -14,7 +14,6 @@ class Objective:
         self,
         dim,
         num_calls=0,
-        dtype=torch.float32,
         lb=None,
         ub=None,
     ):
@@ -25,7 +24,6 @@ class Objective:
         # absolute upper and lower bounds on search space
         self.lb = lb
         self.ub = ub
-        self.dtype = dtype
 
     def __call__(self, xs):
         """Function defines batched function f(x) (the function we want to optimize).
@@ -38,11 +36,11 @@ class Objective:
 
         """
         if type(xs) is np.ndarray:
-            xs = torch.from_numpy(xs).to(dtype=self.dtype)
+            xs = torch.from_numpy(xs)
         ys = []
         for x in xs:
             ys.append(self.f(x))
-        return torch.tensor(ys).to(dtype=self.dtype).unsqueeze(-1)
+        return torch.tensor(ys).unsqueeze(-1)
 
 
 

@@ -386,13 +386,13 @@ def create_large_domain(n_points=30, force_start=True, force_goal=False):
     return domain
 
 
-def get_rover_fn(dim, force_start=True, force_goal=False, tkwargs={"dtype": torch.double}):
+def get_rover_fn(dim, force_start=True, force_goal=False):
     assert dim % 2 == 0
     n_points = dim // 2
 
     # domain of this function (switch lb back to being zero if you don't want to go left/down) 
-    lb = -0.5 * 4 / dim * torch.ones(dim, **tkwargs)
-    ub = 4 / dim * torch.ones(dim, **tkwargs)
+    lb = -0.5 * 4 / dim * torch.ones(dim)
+    ub = 4 / dim * torch.ones(dim)
     bounds = torch.stack((lb, ub), dim=0)
     domain = create_large_domain(n_points=n_points)
 
@@ -401,8 +401,8 @@ def get_rover_fn(dim, force_start=True, force_goal=False, tkwargs={"dtype": torc
     objective = ConstantOffsetFn(domain, f_max)
 
     def f(x):
-        reward = torch.tensor(objective(x.cpu().numpy())).to(**tkwargs).unsqueeze(-1)
-        trajectory = torch.from_numpy(domain.trajectory(x.cpu().numpy())).to(**tkwargs)
+        reward = torch.tensor(objective(x.cpu().numpy())).unsqueeze(-1)
+        trajectory = torch.from_numpy(domain.trajectory(x.cpu().numpy()))
         return reward, trajectory
 
     return f, bounds, domain

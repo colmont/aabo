@@ -36,7 +36,7 @@ class Hartmann6D(Objective):
 
 if __name__ == "__main__":
     obj = Hartmann6D()
-    known_optimum = torch.tensor([0.20169, 0.150011, 0.476874, 0.275332, 0.311652, 0.6573]).to(dtype=obj.dtype)
+    known_optimum = torch.tensor([0.20169, 0.150011, 0.476874, 0.275332, 0.311652, 0.6573])
     known_optimum = known_optimum.unsqueeze(0)
     best_objective_value = obj(known_optimum)
     print(f"Best possible Hartmann6D val: {best_objective_value}")

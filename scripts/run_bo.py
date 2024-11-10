@@ -17,7 +17,7 @@ from svgp.train_model import (
     update_model_elbo, 
     update_model_and_generate_candidates_eulbo,
 )
-from utils.setup import set_seed 
+from utils.setup import handle_interrupt, set_dtype, set_seed, set_wandb_tracker, validate_config 
 from utils.data_loader import get_objective, get_random_init_data
 from utils.turbo import TurboState, update_state
 # for exact gp baseline: 
@@ -28,93 +28,56 @@ from gpytorch.mlls import ExactMarginalLogLikelihood
 @hydra.main(config_path='../configs', config_name='conf')
 def main(cfg: DictConfig):
 
-    # assertions on config
-    if cfg.ablation1_fix_indpts_and_hypers:
-        assert cfg.eulbo
-        assert not cfg.ablation2_fix_hypers
-    if cfg.ablation2_fix_hypers:
-        assert cfg.eulbo
-        assert not cfg.ablation1_fix_indpts_and_hypers
-    if cfg.moss23_baseline:
-        assert not cfg.eulbo
-        assert not cfg.exact_gp_baseline
-        assert cfg.inducing_pt_init_w_moss23
-    if cfg.eulbo:
-        assert not cfg.exact_gp_baseline
-    if cfg.exact_gp_baseline: 
-        assert not cfg.eulbo
-
     # Set-up 
+    validate_config(cfg)
     set_seed(cfg.seed)
+    set_dtype(cfg.float_dtype_as_int)
+    tracker = set_wandb_tracker(cfg)
+    handle_interrupt(tracker)
     DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu") 
-    dtype_map = {
-        32: torch.float32,
-        64: torch.float64
-    }
-    DTYPE = dtype_map.get(cfg.float_dtype_as_int)
-    if DTYPE is not None:
-        torch.set_default_dtype(DTYPE)
-    else:
-        raise ValueError(f"float_dtype_as_int must be one of: {list(dtype_map.keys())}, instead got {cfg.float_dtype_as_int}")
     INIT_TRAINING_COMPLETE = False
-    
-    # Log all args to wandb
-    tracker = wandb.init(
-        project=cfg.wandb_project_name if cfg.wandb_project_name else f"run-aabo-{cfg.task_id}",
-        entity=cfg.wandb_entity,
-        config=OmegaConf.to_container(cfg, resolve=True)
-    )
-    # If we Ctrl-c, make sure we terminate wandb tracker
-    def handler(signum, frame):
-        print("Ctrl-c hass been pressed, wait while we terminate wandb tracker...")
-        tracker.finish() 
-        msg = "tracker terminated, now exiting..."
-        print(msg, end="", flush=True)
-        exit(1)
-    signal.signal(signal.SIGINT, handler)
 
     # Obtain random initial training data
-    objective = get_objective(cfg.task_id, DTYPE)
-    init_train_x, init_train_y = get_random_init_data(
+    objective = get_objective(cfg.task_id)
+    train_x, train_y = get_random_init_data(
         task_id=cfg.task_id,
         objective=objective,
         num_initialization_points=cfg.num_initialization_points,
         init_mol_tasks_w_guacamol_data=cfg.init_mol_tasks_w_guacamol_data,
         update_on_n_pts=cfg.update_on_n_pts,
-        dtype=DTYPE,
     )
 
     # Optional logging for training data shapes
     if cfg.verbose:
-        print(f"train x shape: {init_train_x.shape}")
-        print(f"train y shape: {init_train_y.shape}")
+        print(f"train x shape: {train_x.shape}")
+        print(f"train y shape: {train_y.shape}")
 
     # Get normalized train y
-    init_train_y_mean, init_train_y_std = init_train_y.mean(), init_train_y.std()
+    init_train_y_mean, init_train_y_std = train_y.mean(), train_y.std()
     init_train_y_std = init_train_y_std or 1
-    init_train_y_origscale = init_train_y
+    train_y_origscale = train_y
     if cfg.normalize_ys:
-        init_train_y = (init_train_y - init_train_y_mean) / init_train_y_std
+        train_y = (train_y - init_train_y_mean) / init_train_y_std
 
     # Initialize turbo state 
     tr_state = TurboState(
-        dim=init_train_x.shape[-1],
+        dim=train_x.shape[-1],
         batch_size=cfg.bsz, 
-        best_value=init_train_y_origscale.max().item(),
+        best_value=train_y_origscale.max().item(),
     )
 
     # Initialize exact GP model 
     if cfg.exact_gp_baseline:
         model = SingleTaskGP(
-            init_train_x, 
-            init_train_y, 
+            train_x, 
+            train_y, 
             covar_module=gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel()),
             likelihood=gpytorch.likelihoods.GaussianLikelihood().to(DEVICE),
         )
     # Initialize approximate GP model 
     else:
         inducing_points = get_inducing_points(
-            init_train_x=init_train_x,
+            train_x=train_x,
             objective=objective,
             inducing_pt_init_w_moss23=cfg.inducing_pt_init_w_moss23,
             n_inducing_pts=cfg.n_inducing_pts,
@@ -127,14 +90,10 @@ def main(cfg: DictConfig):
         ).to(DEVICE)
 
     # Main loop
-    INIT_TRAINING_COMPLETE = False
     while objective.num_calls < cfg.max_n_oracle_calls:
 
         # Select all datapoints for first fit of the model
         if not INIT_TRAINING_COMPLETE:
-            train_x = init_train_x
-            train_y = init_train_y
-            train_y_origscale = init_train_y_origscale
             train_x_lastn = train_x
             train_y_lastn = train_y
             INIT_TRAINING_COMPLETE = True
@@ -204,7 +163,6 @@ def main(cfg: DictConfig):
             absolute_bounds=(objective.lb, objective.ub),
             use_turbo=cfg.use_turbo,
             tr_length=tr_state.length,
-            dtype=DTYPE,
         )
 
         # If using eulbo, use above model update and candidate generaiton as warm start
@@ -230,7 +188,6 @@ def main(cfg: DictConfig):
                 alternate_updates=cfg.alternate_eulbo_updates,
                 num_kg_samples=cfg.num_kg_samples, 
                 acq_fun=cfg.acq_fun,
-                dtype=DTYPE,
                 num_mc_samples_qei=cfg.num_mc_samples_qei,
                 ablation1_fix_indpts_and_hypers=cfg.ablation1_fix_indpts_and_hypers,
                 ablation2_fix_hypers=cfg.ablation2_fix_hypers,

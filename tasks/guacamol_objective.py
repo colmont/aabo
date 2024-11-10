@@ -43,7 +43,6 @@ class GuacamolObjective:
         guacamol_task_id,
         dim=256,
         num_calls=0,
-        dtype=torch.float32,
         lb=-8, # based on forwarding 20k guacamol molecules through vae and seeing min of zs -6.3683
         ub=8, # based on forwarding 20k guacamol molecules through vae and seeing max of zs 7.2140
         path_to_vae_statedict="../tasks/utils/selfies_vae/selfies-vae-state-dict.pt",
@@ -57,7 +56,6 @@ class GuacamolObjective:
         # absolute upper and lower bounds on search space
         self.lb = lb
         self.ub = ub
-        self.dtype = dtype
         self.path_to_vae_statedict = path_to_vae_statedict
         self.max_string_length = max_string_length
         self.guacamol_obj_func = guacamol_objs[guacamol_task_id].objective
@@ -75,7 +73,7 @@ class GuacamolObjective:
             tensor: (bsz, 1) float tensor giving reward obtained by passing each x in xs into f(x).
         """
         if type(xs) is np.ndarray:
-            xs = torch.from_numpy(xs).to(dtype=self.dtype)
+            xs = torch.from_numpy(xs)
         xs = xs.to(device)
         smiles_list = self.vae_decode(z=xs)
         ys = []
@@ -87,7 +85,7 @@ class GuacamolObjective:
                 ys.append(y)
             self.num_calls += 1
 
-        return torch.tensor(ys).to(dtype=self.dtype).unsqueeze(-1)
+        return torch.tensor(ys).unsqueeze(-1)
 
 
     def smile_to_guacamole_score(self, smile):
@@ -128,7 +126,7 @@ class GuacamolObjective:
                 items output by vae decoder 
         '''
         if type(z) is np.ndarray: 
-            z = torch.from_numpy(z).to(dtype=self.dtype)
+            z = torch.from_numpy(z)
         z.to(device)
         self.vae.eval()
         self.vae.to(device)
@@ -148,7 +146,7 @@ class GuacamolObjective:
 
 if __name__ == "__main__":
     obj = GuacamolObjective(guacamol_task_id="rano")
-    x = torch.randn(12, 256).to(dtype=obj.dtype)
+    x = torch.randn(12, 256)
     y = obj(x)
     print(f"y: {y}")
 

@@ -90,7 +90,6 @@ def update_model_and_generate_candidates_eulbo(
     alternate_updates=True,
     num_kg_samples=64, 
     acq_fun="KG",
-    dtype=torch.float64,
     num_mc_samples_qei=64,
     ablation1_fix_indpts_and_hypers=False,
     ablation2_fix_hypers=False,
@@ -147,7 +146,6 @@ def update_model_and_generate_candidates_eulbo(
                 ablation1_fix_indpts_and_hypers=ablation1_fix_indpts_and_hypers,
                 ablation2_fix_hypers=ablation2_fix_hypers,
                 ppgpr=ppgpr,
-                dtype=dtype,
                 n_train=train_x.size(-2),
             )
             success = True
@@ -185,7 +183,6 @@ def eulbo_training_loop(
     use_botorch_stable_log_softplus,
     lb,
     ub,
-    dtype,
     n_train,
     dim,
     num_kg_samples,
@@ -232,10 +229,9 @@ def eulbo_training_loop(
             lb=lb,
             num_kg_samples=num_kg_samples,
             acquisition_bsz=acquisition_bsz,
-            dtype=dtype,
         )
     elif acq_fun == "ei":
-        base_samples = torch.randn(num_mc_samples_qei, acquisition_bsz).to(device=device).to(dtype=dtype) 
+        base_samples = torch.randn(num_mc_samples_qei, acquisition_bsz).to(device=device)
     else:
         raise ValueError(f"Invalid acquisition function: {acq_fun}")
 

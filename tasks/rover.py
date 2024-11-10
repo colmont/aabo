@@ -23,7 +23,6 @@ class RoverObjective(Objective):
         self.domain = create_large_domain(n_points=dim // 2)
         f_max=5.0 
         self.oracle = ConstantOffsetFn(self.domain, f_max)
-        self.tkwargs={"dtype": torch.double}
 
         super().__init__(
             dim=dim,
@@ -35,7 +34,7 @@ class RoverObjective(Objective):
 
     def f(self, x):
         self.num_calls += 1
-        reward = torch.tensor(self.oracle(x.cpu().numpy())).to(**self.tkwargs) 
+        reward = torch.tensor(self.oracle(x.cpu().numpy()))
         return reward.item()
 
 if __name__ == "__main__":
