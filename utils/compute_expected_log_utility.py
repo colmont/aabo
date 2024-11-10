@@ -2,7 +2,6 @@ import torch
 from gpytorch.utils.quadrature import GaussHermiteQuadrature1D
 from linear_operator.operators import TriangularLinearOperator
 from botorch.utils.safe_math import log_softplus 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 softplus_func = torch.nn.Softplus()
 
 def get_expected_log_utility_x_next(
@@ -94,10 +93,9 @@ def get_expected_log_utility_ei(
             log_utility = log_softplus(y - best_f)
         else:
             log_utility = torch.log(softplus_func(y - best_f)) 
-        return log_utility.to(device)
+        return log_utility
     
     ghq = GaussHermiteQuadrature1D()
-    ghq = ghq.to(device)
     expected_log_utility = ghq(log_utility, output)
             
     return expected_log_utility
@@ -110,7 +108,7 @@ def get_q_expected_log_utility_knowledge_gradient(model, x_next, kg_samples, zs,
     S = model.covar_module(x_next, x_next, diag=True) # K(x_next, x_next), torch.Size(q), 
     chol_factor_tensor = chol_factor._tensor.tensor # (M,M) 
     chol_factor_tensor_repeated = chol_factor_tensor.repeat(x_next.shape[0], 1, 1,) # (q, M, M)
-    L = torch.cat((chol_factor_tensor_repeated, torch.zeros(x_next.shape[0], chol_factor_tensor.shape[-1], 1).to(device)), -1) # (q, M, M+1)
+    L = torch.cat((chol_factor_tensor_repeated, torch.zeros(x_next.shape[0], chol_factor_tensor.shape[-1], 1)), -1) # (q, M, M+1)
     var_mean = chol_factor @ model.variational_strategy.variational_distribution.mean
     var_mean = var_mean.repeat(x_next.shape[0],1).unsqueeze(-1) # (q,M,1)
     var_mean_repeated = var_mean.repeat(1,1,y_samples.shape[-2]) # (q,M,num_kg_samples)
@@ -152,7 +150,7 @@ def get_expected_log_utility_knowledge_gradient(model, x_next, kg_samples, zs, n
     U = model.covar_module(model.variational_strategy.inducing_points, x_next) # (M,1)
     S = model.covar_module(x_next, x_next) # K(x_next, x_next)
     chol_factor_tensor = chol_factor._tensor.tensor # (M,M)
-    L = torch.cat((chol_factor_tensor, torch.zeros(chol_factor_tensor.shape[-1], 1).to(device)), -1) # (M, M+1)
+    L = torch.cat((chol_factor_tensor, torch.zeros(chol_factor_tensor.shape[-1], 1)), -1) # (M, M+1)
     var_mean = chol_factor @ model.variational_strategy.variational_distribution.mean
     var_mean = var_mean.unsqueeze(-1) # (M,1)
     var_mean_repeated = var_mean.repeat(1,y_samples.shape[-1]) # (M,num_kg_samples) = (M,S) 

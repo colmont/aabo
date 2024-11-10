@@ -4,7 +4,6 @@ import numpy as np
 sys.path.append("../")
 from tasks.objective import Objective
 import LassoBench
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class LassoDNA(Objective):
     """

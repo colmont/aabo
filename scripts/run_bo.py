@@ -17,7 +17,7 @@ from svgp.train_model import (
     update_model_elbo, 
     update_model_and_generate_candidates_eulbo,
 )
-from utils.setup import handle_interrupt, set_dtype, set_seed, set_wandb_tracker, validate_config 
+from utils.setup import handle_interrupt, set_device, set_dtype, set_seed, set_wandb_tracker, validate_config 
 from utils.data_loader import get_objective, get_random_init_data
 from utils.turbo import TurboState, update_state
 # for exact gp baseline: 
@@ -32,9 +32,9 @@ def main(cfg: DictConfig):
     validate_config(cfg)
     set_seed(cfg.seed)
     set_dtype(cfg.float_dtype_as_int)
+    set_device()
     tracker = set_wandb_tracker(cfg)
     handle_interrupt(tracker)
-    DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu") 
     INIT_TRAINING_COMPLETE = False
 
     # Obtain random initial training data
@@ -72,7 +72,7 @@ def main(cfg: DictConfig):
             train_x, 
             train_y, 
             covar_module=gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel()),
-            likelihood=gpytorch.likelihoods.GaussianLikelihood().to(DEVICE),
+            likelihood=gpytorch.likelihoods.GaussianLikelihood(),
         )
     # Initialize approximate GP model 
     else:
@@ -85,9 +85,9 @@ def main(cfg: DictConfig):
         learn_inducing_locations = not cfg.moss23_baseline
         model = GPModel(
             inducing_points=inducing_points, 
-            likelihood=gpytorch.likelihoods.GaussianLikelihood().to(DEVICE),
+            likelihood=gpytorch.likelihoods.GaussianLikelihood(),
             learn_inducing_locations=learn_inducing_locations,
-        ).to(DEVICE)
+        )
 
     # Main loop
     while objective.num_calls < cfg.max_n_oracle_calls:
@@ -159,7 +159,6 @@ def main(cfg: DictConfig):
             Y=train_y,
             batch_size=cfg.bsz,
             acqf=cfg.acq_fun,
-            device=DEVICE,
             absolute_bounds=(objective.lb, objective.ub),
             use_turbo=cfg.use_turbo,
             tr_length=tr_state.length,

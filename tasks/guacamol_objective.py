@@ -2,7 +2,6 @@ import numpy as np
 import torch
 import sys 
 sys.path.append("../")
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 from rdkit import Chem
 import selfies as sf 
 # import guacamol
@@ -74,7 +73,6 @@ class GuacamolObjective:
         """
         if type(xs) is np.ndarray:
             xs = torch.from_numpy(xs)
-        xs = xs.to(device)
         smiles_list = self.vae_decode(z=xs)
         ys = []
         for smile in smiles_list:
@@ -112,7 +110,6 @@ class GuacamolObjective:
             self.path_to_vae_statedict = "/Users/Colin/code/aabo/tasks/utils/selfies_vae/selfies-vae-state-dict.pt"
             state_dict = torch.load(self.path_to_vae_statedict) 
             self.vae.load_state_dict(state_dict, strict=True) 
-        self.vae = self.vae.to(device)
         self.vae = self.vae.eval()
         # set max string length that VAE can generate
         self.vae.max_string_length = self.max_string_length
@@ -127,9 +124,7 @@ class GuacamolObjective:
         '''
         if type(z) is np.ndarray: 
             z = torch.from_numpy(z)
-        z.to(device)
         self.vae.eval()
-        self.vae.to(device)
         # sample molecular string form VAE decoder
         with torch.no_grad():
             sample = self.vae.sample(z=z.reshape(-1, 2, 128))

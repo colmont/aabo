@@ -3,8 +3,6 @@ import gpytorch
 from svgp.model import GPModel
 from utils.set_inducing_points_with_moss23 import get_optimal_inducing_points
 
-DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
 def get_inducing_points(
     train_x,
     objective,
@@ -23,9 +21,9 @@ def get_inducing_points(
     if inducing_pt_init_w_moss23:
         model = GPModel(
             inducing_points=inducing_points, 
-            likelihood=gpytorch.likelihoods.GaussianLikelihood().to(DEVICE),
+            likelihood=gpytorch.likelihoods.GaussianLikelihood(),
             learn_inducing_locations=False,
-        ).to(DEVICE)
+        )
         inducing_points = get_optimal_inducing_points(
             model=model,
             prev_inducing_points=inducing_points, 

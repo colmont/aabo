@@ -2,13 +2,12 @@ import torch
 import sys 
 sys.path.append("../")
 from utils.mossetal_inducing_pts_init import GreedyImprovementReduction
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 def get_optimal_inducing_points(model, prev_inducing_points):
     greedy_imp_reduction = GreedyImprovementReduction(model=model, maximize=True) 
     optimal_inducing_points = greedy_imp_reduction.allocate_inducing_points(
-        inputs=prev_inducing_points.to(device),
+        inputs=prev_inducing_points,
         covar_module=model.covar_module,
         num_inducing=prev_inducing_points.shape[0],
         input_batch_shape=1,

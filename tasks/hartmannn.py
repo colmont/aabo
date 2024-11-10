@@ -3,7 +3,6 @@ import sys
 sys.path.append("../")
 from tasks.objective import Objective
 from botorch.test_functions import Hartmann
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 class Hartmann6D(Objective):
@@ -28,7 +27,6 @@ class Hartmann6D(Objective):
         )
 
     def f(self, x):
-        x = x.to(device)
         self.num_calls += 1
         y = self.neg_hartmann6(x)
         return y.item()

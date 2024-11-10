@@ -9,7 +9,6 @@ from utils.compute_expected_log_utility import get_expected_log_utility_x_next
 from utils.get_kg_samples_and_zs import get_kg_samples_and_zs
 from utils.set_inducing_points_with_moss23 import set_inducing_points_with_moss23
 import copy 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def update_model_elbo(
     model,
@@ -44,8 +43,8 @@ def update_model_elbo(
         total_loss = 0
         for (inputs, scores) in train_loader:
             optimizer.zero_grad()
-            output = model(inputs.to(device))
-            loss = -mll(output, scores.to(device))
+            output = model(inputs)
+            loss = -mll(output, scores)
             loss.backward()
             if grad_clip is not None:
                 torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=grad_clip)
@@ -107,13 +106,9 @@ def update_model_and_generate_candidates_eulbo(
             Y=train_y,
             tr_length=tr_length,
         )
-    if torch.is_tensor(lb):
-        lb = lb.to(device)
-        ub = ub.to(device)
     torch.autograd.set_detect_anomaly(True) 
     if init_x_next is None:
         init_x_next = torch.rand(acquisition_bsz, train_x.shape[-1], requires_grad=True)*(ub - lb) + lb
-    init_x_next = init_x_next.to(device=device)
     train_bsz = min(len(train_y),train_bsz)
     train_dataset = TensorDataset(train_x, train_y)
     train_loader = DataLoader(train_dataset, batch_size=train_bsz, shuffle=True)
@@ -231,7 +226,7 @@ def eulbo_training_loop(
             acquisition_bsz=acquisition_bsz,
         )
     elif acq_fun == "ei":
-        base_samples = torch.randn(num_mc_samples_qei, acquisition_bsz).to(device=device)
+        base_samples = torch.randn(num_mc_samples_qei, acquisition_bsz)
     else:
         raise ValueError(f"Invalid acquisition function: {acq_fun}")
 
@@ -243,8 +238,8 @@ def eulbo_training_loop(
                 x_next_optimizer.zero_grad()
             else:
                 joint_optimizer.zero_grad()
-            output = model(inputs.to(device))
-            nelbo = -mll(output, scores.to(device))
+            output = model(inputs)
+            nelbo = -mll(output, scores)
             expected_log_utility_x_next = get_expected_log_utility_x_next(
                 acq_fun=acq_fun, 
                 acquisition_bsz=acquisition_bsz,

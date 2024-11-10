@@ -1,0 +1,4 @@
+name: dna
+bsz: 20
+max_n_oracle_calls: 20000
+num_initialization_points: 100

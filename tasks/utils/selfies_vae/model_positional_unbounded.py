@@ -126,7 +126,7 @@ class InfoTransformerVAE(pl.LightningModule):
         else:
             sequence_length = self.bottleneck_size
 
-        return torch.randn(n, sequence_length, self.d_model).to(self.device)
+        return torch.randn(n, sequence_length, self.d_model)
 
     def sample_posterior(self, mu, sigma, n=None):
         if n is not None:
@@ -168,12 +168,12 @@ class InfoTransformerVAE(pl.LightningModule):
 
         embed = torch.cat([
             # Zero is the start token
-            torch.zeros(embed.shape[0], 1, embed.shape[-1], device=self.device),
+            torch.zeros(embed.shape[0], 1, embed.shape[-1]),
             embed
         ], dim=1)
         embed = self.decoder_position_encoding(embed)
 
-        tgt_mask = nn.Transformer.generate_square_subsequent_mask(embed.shape[1]).to(self.device)
+        tgt_mask = nn.Transformer.generate_square_subsequent_mask(embed.shape[1])
         decoding = self.decoder(tgt=embed, memory=z, tgt_mask=tgt_mask)
         logits = decoding @ self.decoder_token_unembedding
 
@@ -188,12 +188,12 @@ class InfoTransformerVAE(pl.LightningModule):
         else:
             n = z.shape[0]
 
-        tokens = torch.zeros(n, 1, device=self.device).long() # Start token is 0, stop token is 1
-        random_gumbels = torch.zeros(n, 0, self.vocab_size, device=self.device)
+        tokens = torch.zeros(n, 1).long() # Start token is 0, stop token is 1
+        random_gumbels = torch.zeros(n, 0, self.vocab_size)
         while True: # Loop until every molecule hits a stop token
             tgt = self.decoder_token_embedding(tokens)
             tgt = self.decoder_position_encoding(tgt)
-            tgt_mask = nn.Transformer.generate_square_subsequent_mask(tokens.shape[-1]).to(self.device)
+            tgt_mask = nn.Transformer.generate_square_subsequent_mask(tokens.shape[-1])
 
             decoding = self.decoder(tgt=tgt, memory=z, tgt_mask=tgt_mask)
             logits = decoding @ self.decoder_token_unembedding 
@@ -217,11 +217,10 @@ class InfoTransformerVAE(pl.LightningModule):
 
 
     def is_valid(self, x):
-        device = x.device
         x = x.cpu()
         v = [is_valid_molecule(self.dataset.decode(s)) for s in x]
 
-        return torch.tensor(v, dtype=torch.float, device=device) 
+        return torch.tensor(v, dtype=torch.float) 
 
     def forward(self, tokens):
         mu, sigma = self.encode(tokens)

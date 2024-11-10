@@ -48,6 +48,10 @@ def set_dtype(float_dtype_as_int: int):
     dtype = dtype_map.get(float_dtype_as_int)
     torch.set_default_dtype(dtype)
 
+def set_device():
+    """Set default device for torch tensors."""
+    torch.set_default_device(device)
+
 def set_wandb_tracker(cfg: DictConfig):
     """Set-up Weights & Biases tracker."""
     project_name = cfg.wandb_project_name or f"run-aabo-{cfg.task_id}"

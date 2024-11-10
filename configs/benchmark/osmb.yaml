@@ -1,0 +1,4 @@
+name: osmb
+bsz: 20
+max_n_oracle_calls: 80000
+num_initialization_points: 100
