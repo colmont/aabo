@@ -401,8 +401,8 @@ def get_rover_fn(dim, force_start=True, force_goal=False):
     objective = ConstantOffsetFn(domain, f_max)
 
     def f(x):
-        reward = torch.tensor(objective(x.cpu().numpy())).unsqueeze(-1)
-        trajectory = torch.from_numpy(domain.trajectory(x.cpu().numpy()))
+        reward = torch.tensor(objective(x.detach().cpu().numpy())).unsqueeze(-1)
+        trajectory = torch.from_numpy(domain.trajectory(x.detach().cpu().numpy()))
         return reward, trajectory
 
     return f, bounds, domain

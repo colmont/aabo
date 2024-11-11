@@ -34,7 +34,7 @@ class RoverObjective(Objective):
 
     def f(self, x):
         self.num_calls += 1
-        reward = torch.tensor(self.oracle(x.cpu().numpy()))
+        reward = torch.tensor(self.oracle(x.detach().cpu().numpy()))
         return reward.item()
 
 if __name__ == "__main__":

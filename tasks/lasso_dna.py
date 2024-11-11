@@ -23,7 +23,7 @@ class LassoDNA(Objective):
 
     def f(self, x):
         self.num_calls += 1
-        X_np = x.detach().numpy().flatten().astype(np.float64)
+        X_np = x.detach().cpu().numpy().flatten().astype(np.float64)
         y = self.dna_func.evaluate(X_np)
         # negate to create maximization problem 
         y = y*-1 

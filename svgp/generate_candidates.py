@@ -23,7 +23,7 @@ def generate_batch(
     assert torch.all(torch.isfinite(Y))
     if n_candidates is None: n_candidates = min(5000, max(2000, 200 * X.shape[-1]))
 
-    x_center = copy.deepcopy(X[Y.argmax(), :]) 
+    x_center = copy.deepcopy(X[Y.argmax(), :].detach()) 
     weights = torch.ones_like(x_center)
     
     if absolute_bounds is None:

@@ -1,14 +1,14 @@
-import sys 
-sys.path.append("../")
 import torch
 from torch.utils.data import TensorDataset, DataLoader
-import gpytorch
+from gpytorch.mlls import VariationalELBO, PredictiveLogLikelihood
 from torch.autograd import Variable 
 from utils.get_turbo_lb_ub import get_turbo_lb_ub
 from utils.compute_expected_log_utility import get_expected_log_utility_x_next
 from utils.get_kg_samples_and_zs import get_kg_samples_and_zs
 from utils.set_inducing_points_with_moss23 import set_inducing_points_with_moss23
 import copy 
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def update_model_elbo(
     model,
@@ -27,14 +27,15 @@ def update_model_elbo(
 ):
     if mll is None:
         if ppgpr: 
-            mll = gpytorch.mlls.PredictiveLogLikelihood(model.likelihood, model, num_data=train_x.size(-2))
+            mll = PredictiveLogLikelihood(model.likelihood, model, num_data=train_x.size(-2))
         else:
-            mll = gpytorch.mlls.VariationalELBO(model.likelihood, model, num_data=train_x.size(-2))
+            mll = VariationalELBO(model.likelihood, model, num_data=train_x.size(-2))
     model.train()
     optimizer = torch.optim.Adam([{'params': model.parameters(), 'lr': lr} ], lr=lr)
     train_bsz = min(len(train_y),train_bsz)
     train_dataset = TensorDataset(train_x, train_y)
-    train_loader = DataLoader(train_dataset, batch_size=train_bsz, shuffle=True)
+    train_loader = DataLoader(train_dataset, batch_size=train_bsz, shuffle=True)  # won't work for GPU
+    # train_loader = DataLoader(train_dataset, batch_size=train_bsz, shuffle=True, generator=torch.Generator(device=device))  # different seed results than in paper
     lowest_loss = torch.inf 
     n_failures_improve_loss = 0
     epochs_trained = 0
@@ -109,9 +110,11 @@ def update_model_and_generate_candidates_eulbo(
     torch.autograd.set_detect_anomaly(True) 
     if init_x_next is None:
         init_x_next = torch.rand(acquisition_bsz, train_x.shape[-1], requires_grad=True)*(ub - lb) + lb
+    init_x_next = init_x_next.to(device) 
     train_bsz = min(len(train_y),train_bsz)
     train_dataset = TensorDataset(train_x, train_y)
-    train_loader = DataLoader(train_dataset, batch_size=train_bsz, shuffle=True)
+    train_loader = DataLoader(train_dataset, batch_size=train_bsz, shuffle=True)  # won't work for GPU
+    # train_loader = DataLoader(train_dataset, batch_size=train_bsz, shuffle=True, generator=torch.Generator(device=device))  # different seed results than in paper
     model_state_before_update = copy.deepcopy(model.state_dict())
     n_failures = 0
     success = False 
@@ -156,7 +159,7 @@ def update_model_and_generate_candidates_eulbo(
     model.eval()
     return_dict = {}
     return_dict["model"] = model 
-    return_dict["x_next"] = x_next.detach().cpu()  
+    return_dict["x_next"] = x_next
 
     return return_dict
 
@@ -192,9 +195,9 @@ def eulbo_training_loop(
     x_next = Variable(init_x_next, requires_grad=True)
     if mll is None:
         if ppgpr: 
-            mll = gpytorch.mlls.PredictiveLogLikelihood(model.likelihood, model, num_data=n_train)
+            mll = PredictiveLogLikelihood(model.likelihood, model, num_data=n_train)
         else:
-            mll = gpytorch.mlls.VariationalELBO(model.likelihood, model, num_data=n_train)
+            mll = VariationalELBO(model.likelihood, model, num_data=n_train)
 
     if ablation1_fix_indpts_and_hypers: 
         model_params_to_update = model.variational_parameters() 
