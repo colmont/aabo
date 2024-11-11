@@ -26,11 +26,14 @@ def update_model_elbo(
     moss23_baseline=False,
     ppgpr=False,
 ):
+    # Define which MLL to use
     if mll is None:
         if ppgpr: 
             mll = PredictiveLogLikelihood(model.likelihood, model, num_data=train_x.size(-2))
         else:
             mll = VariationalELBO(model.likelihood, model, num_data=train_x.size(-2))
+
+    # Set-up model and training data
     model.train()
     optimizer = torch.optim.Adam([{'params': model.parameters(), 'lr': lr} ], lr=lr)
     train_bsz = min(len(train_y),train_bsz)
@@ -41,8 +44,12 @@ def update_model_elbo(
     n_failures_improve_loss = 0
     epochs_trained = 0
     continue_training_condition = True 
+
+    # Training loop
     while continue_training_condition:
         total_loss = 0
+
+        # Standard backprop loop
         for (inputs, scores) in train_loader:
             optimizer.zero_grad()
             output = model(inputs)
@@ -53,6 +60,8 @@ def update_model_elbo(
             optimizer.step()
             total_loss += loss.item()
         epochs_trained += 1
+
+        # Check if training should continue
         if total_loss < lowest_loss:
             lowest_loss = total_loss
         else:
@@ -63,11 +72,14 @@ def update_model_elbo(
                 continue_training_condition = False 
         else:
             continue_training_condition = epochs_trained < n_epochs
+    
+    # Return model
     model.eval()
     if moss23_baseline:
         model = set_inducing_points_with_moss23(model)
     return_dict = {}
     return_dict["model"] = model 
+
     return return_dict
 
 
@@ -99,6 +111,7 @@ def update_model_and_generate_candidates_eulbo(
     use_botorch_stable_log_softplus=False,
     ppgpr=False,
 ):
+    # Set Turbo bounds
     if use_turbo: 
         assert tr_length is not None 
         lb, ub = get_turbo_lb_ub(
@@ -108,7 +121,10 @@ def update_model_and_generate_candidates_eulbo(
             Y=train_y,
             tr_length=tr_length,
         )
-    torch.autograd.set_detect_anomaly(True) 
+
+    torch.autograd.set_detect_anomaly(True)  # for debugging
+
+    # Set-up model and training data
     if init_x_next is None:
         init_x_next = torch.rand(acquisition_bsz, train_x.shape[-1], requires_grad=True)*(ub - lb) + lb
     init_x_next = init_x_next.to(device) 
@@ -119,6 +135,8 @@ def update_model_and_generate_candidates_eulbo(
     model_state_before_update = copy.deepcopy(model.state_dict())
     n_failures = 0
     success = False 
+
+    # Attempt to update model
     while (n_failures < 8) and (not success):
         try:
             model, x_next = eulbo_training_loop(
@@ -148,15 +166,19 @@ def update_model_and_generate_candidates_eulbo(
                 n_train=train_x.size(-2),
             )
             success = True
+
+        # In case of failure, reduce learning rate and try again
         except Exception as e:
-            # decrease lr to stabalize training 
             error_message = e
             n_failures += 1
             lr = lr/10
             x_next_lr = x_next_lr/10
             model.load_state_dict(copy.deepcopy(model_state_before_update))
+    
     if not success:
         assert 0, f"\nFailed to complete EULBO model update due to the following error:\n{error_message}"
+
+    # Return model and x_next
     model.eval()
     return_dict = {}
     return_dict["model"] = model 
@@ -191,21 +213,27 @@ def eulbo_training_loop(
     ablation2_fix_hypers=False,
     ppgpr=False,
 ):
+    # Set-up model and x_next
     model.train()
     init_x_next = copy.deepcopy(init_x_next)
     x_next = Variable(init_x_next, requires_grad=True)
+    
+    # Define which MLL to use
     if mll is None:
         if ppgpr: 
             mll = PredictiveLogLikelihood(model.likelihood, model, num_data=n_train)
         else:
             mll = VariationalELBO(model.likelihood, model, num_data=n_train)
 
+    # Define which parameters to update
     if ablation1_fix_indpts_and_hypers: 
         model_params_to_update = model.variational_parameters() 
     elif ablation2_fix_hypers: 
         model_params_to_update = list(model.variational_parameters()) + [model.variational_strategy.inducing_points]
     else:
         model_params_to_update = model.parameters()
+
+    # Define training loop
     lowest_loss = torch.inf 
     n_failures_improve_loss = 0
     epochs_trained = 0
@@ -213,10 +241,13 @@ def eulbo_training_loop(
     if (max_allowed_n_epochs == 0) or (n_epochs == 0):
         continue_training_condition = False 
     currently_training_model = True 
+
+    # Define optimizers: alternate or joint updates
     x_next_optimizer = torch.optim.Adam([{'params': x_next},], lr=x_next_lr)
     model_optimizer = torch.optim.Adam([{'params': model_params_to_update, 'lr':lr} ], lr=lr)
     joint_optimizer = torch.optim.Adam([{'params': x_next,},{'params': model_params_to_update, 'lr':lr} ], lr=lr)
 
+    # Define variables for KG and EI
     base_samples = None
     kg_samples = None
     zs = None 
@@ -234,14 +265,19 @@ def eulbo_training_loop(
     else:
         raise ValueError(f"Invalid acquisition function: {acq_fun}")
 
+    # Training loop
     while continue_training_condition:
         total_loss = 0
         for (inputs, scores) in train_loader:
+
+            # Update model and x_next
             if alternate_updates:
                 model_optimizer.zero_grad()
                 x_next_optimizer.zero_grad()
             else:
                 joint_optimizer.zero_grad()
+
+            # Define loss and gradients
             output = model(inputs)
             nelbo = -mll(output, scores)
             expected_log_utility_x_next = get_expected_log_utility_x_next(
@@ -258,9 +294,13 @@ def eulbo_training_loop(
             )
             loss = nelbo - expected_log_utility_x_next
             loss.backward()
+
+            # Clip gradients 
             if grad_clip is not None:
                 torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=grad_clip)
                 torch.nn.utils.clip_grad_norm_(x_next, max_norm=grad_clip)
+
+            # Take gradient step
             if alternate_updates:
                 if currently_training_model: 
                     model_optimizer.step() 
@@ -268,11 +308,16 @@ def eulbo_training_loop(
                     x_next_optimizer.step()
             else:
                 joint_optimizer.step()
+            
+            # Update total loss
             with torch.no_grad():   
                 x_next[:,:] = x_next.clamp(lb, ub) 
                 total_loss += loss.item()
+
         epochs_trained += 1
-        currently_training_model = not currently_training_model 
+        currently_training_model = not currently_training_model  # alternate updates
+        
+        # Check if training should continue
         if total_loss < lowest_loss:
             lowest_loss = total_loss
         else:

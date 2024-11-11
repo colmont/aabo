@@ -54,7 +54,7 @@ def set_device():
 
 def set_wandb_tracker(cfg: DictConfig):
     """Set-up Weights & Biases tracker."""
-    project_name = cfg.wandb_project_name or f"run-aabo-{cfg.task_id}"
+    project_name = cfg.wandb_project_name or f"run-aabo-{cfg.benchmark.name}"
     wandb_mode = "disabled" if cfg.debug else "online"
     return wandb.init(
         project=project_name,

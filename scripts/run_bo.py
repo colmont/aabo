@@ -43,11 +43,11 @@ def main(cfg: DictConfig):
     INIT_TRAINING_COMPLETE = False
 
     # Obtain random initial training data
-    objective = get_objective(cfg.task_id)
+    objective = get_objective(cfg.benchmark.name)
     train_x, train_y = get_random_init_data(
-        task_id=cfg.task_id,
+        task_id=cfg.benchmark.name,
         objective=objective,
-        num_initialization_points=cfg.num_initialization_points,
+        num_initialization_points=cfg.benchmark.num_initialization_points,
         init_mol_tasks_w_guacamol_data=cfg.init_mol_tasks_w_guacamol_data,
         update_on_n_pts=cfg.update_on_n_pts,
     )
@@ -67,7 +67,7 @@ def main(cfg: DictConfig):
     # Initialize turbo state 
     tr_state = TurboState(
         dim=train_x.shape[-1],
-        batch_size=cfg.bsz, 
+        batch_size=cfg.benchmark.bsz, 
         best_value=train_y_origscale.max().item(),
     )
 
@@ -95,7 +95,7 @@ def main(cfg: DictConfig):
         )
 
     # Main loop
-    while objective.num_calls < cfg.max_n_oracle_calls:
+    while objective.num_calls < cfg.benchmark.max_n_oracle_calls:
 
         # Select all datapoints for first fit of the model
         if not INIT_TRAINING_COMPLETE:
@@ -162,8 +162,8 @@ def main(cfg: DictConfig):
             model=model,
             X=train_x,  
             Y=train_y,
-            batch_size=cfg.bsz,
-            acqf=cfg.acq_fun,
+            batch_size=cfg.benchmark.bsz,
+            acqf=cfg.acq_fun.name,
             absolute_bounds=(objective.lb, objective.ub),
             use_turbo=cfg.use_turbo,
             tr_length=tr_state.length,
@@ -184,20 +184,20 @@ def main(cfg: DictConfig):
                 train_bsz=cfg.train_bsz,
                 grad_clip=cfg.grad_clip,
                 normed_best_f=train_y.max(),
-                acquisition_bsz=cfg.bsz,
+                acquisition_bsz=cfg.benchmark.bsz,
                 max_allowed_n_failures_improve_loss=cfg.max_allowed_n_failures_improve_loss,
                 max_allowed_n_epochs=cfg.max_allowed_n_epochs,
                 init_x_next=x_next, 
                 x_next_lr=cfg.x_next_lr,
                 alternate_updates=cfg.alternate_eulbo_updates,
-                num_kg_samples=cfg.num_kg_samples, 
-                acq_fun=cfg.acq_fun,
-                num_mc_samples_qei=cfg.num_mc_samples_qei,
+                num_kg_samples=cfg.acq_fun.num_kg_samples, 
+                acq_fun=cfg.acq_fun.name,
+                num_mc_samples_qei=cfg.acq_fun.num_mc_samples_qei,
                 ablation1_fix_indpts_and_hypers=cfg.ablation1_fix_indpts_and_hypers,
                 ablation2_fix_hypers=cfg.ablation2_fix_hypers,
                 use_turbo=cfg.use_turbo,
                 tr_length=tr_state.length,
-                use_botorch_stable_log_softplus=cfg.use_botorch_stable_log_softplus,
+                use_botorch_stable_log_softplus=cfg.acq_fun.use_botorch_stable_log_softplus,
                 ppgpr=cfg.ppgpr,
             )
             model = update_model_dict["model"]
@@ -219,7 +219,7 @@ def main(cfg: DictConfig):
             if tr_state.restart_triggered:
                 tr_state = TurboState( 
                     dim=train_x.shape[-1],
-                    batch_size=cfg.bsz, 
+                    batch_size=cfg.benchmark.bsz, 
                     best_value=train_y_origscale.max().item(),
                 )
         

@@ -1,3 +1,4 @@
+name: ei
 num_kg_samples: null
 num_mc_samples_qei: 64
 use_botorch_stable_log_softplus: false

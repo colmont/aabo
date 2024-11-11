@@ -1,11 +1,11 @@
-seed: 42
-# defaults:
+defaults:
+  - benchmark: fexo
+  - acq_fun: ei
 #   - model: default
 #   - acq_opt: highdim
-#   - acq_func: ei
-#   - benchmark: hartmann6
 
 # general
+seed: 42
 debug: true
 float_dtype_as_int: 64
 verbose: true
@@ -13,39 +13,36 @@ wandb_entity: ""
 wandb_project_name: ""
 run_id: ""
 
-# elbo
+# elbo/eulbo
 lr: 0.01
 train_bsz: 32
 max_allowed_n_failures_improve_loss: 3
 max_allowed_n_epochs: 30
 ppgpr: false
-n_update_epochs: 5
+grad_clip: 2.0
 n_inducing_pts: 100
 update_on_n_pts: 100
-grad_clip: 2.0
 
-# eulbo
+# only elbo
+n_update_epochs: 5
+
+# only eulbo
 x_next_lr: 0.001
 n_warm_start_epochs: 10
-eulbo: true
+alternate_eulbo_updates: true
 
-use_turbo: true
+# models (see assertions)
+eulbo: true
 ablation1_fix_indpts_and_hypers: false
 ablation2_fix_hypers: false
 moss23_baseline: false
 inducing_pt_init_w_moss23: true
 exact_gp_baseline: false
-alternate_eulbo_updates: true
+
+# other
+use_turbo: true
 normalize_ys: true
 init_mol_tasks_w_guacamol_data: false
-task_id: "fexo"
 
-# x_next
-acq_fun: "ei"
-num_kg_samples: null
-num_mc_samples_qei: 64
-use_botorch_stable_log_softplus: false
-
-bsz: 20
-max_n_oracle_calls: 20000
-num_initialization_points: 100
+#FIXME: add something about how to choose the acquisition function for warm start only?
+#FIXME: or simply add KG from botorch to warm start options?
