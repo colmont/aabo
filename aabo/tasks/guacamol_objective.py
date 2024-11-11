@@ -1,14 +1,12 @@
+import os
 import numpy as np 
 import torch
-import sys 
-sys.path.append("../")
 from rdkit import Chem
 import selfies as sf 
-# import guacamol
 from guacamol import standard_benchmarks 
 
-from tasks.utils.selfies_vae.data import SELFIESDataset
-from tasks.utils.selfies_vae.model_positional_unbounded import InfoTransformerVAE
+from aabo.tasks.utils.selfies_vae.data import SELFIESDataset
+from aabo.tasks.utils.selfies_vae.model_positional_unbounded import InfoTransformerVAE
 
 med1 = standard_benchmarks.median_camphor_menthol() #'Median molecules 1'
 med2 = standard_benchmarks.median_tadalafil_sildenafil() #'Median molecules 2',
@@ -44,7 +42,6 @@ class GuacamolObjective:
         num_calls=0,
         lb=-8, # based on forwarding 20k guacamol molecules through vae and seeing min of zs -6.3683
         ub=8, # based on forwarding 20k guacamol molecules through vae and seeing max of zs 7.2140
-        path_to_vae_statedict="../tasks/utils/selfies_vae/selfies-vae-state-dict.pt",
         max_string_length=128,
         **kwargs,
     ):
@@ -55,7 +52,6 @@ class GuacamolObjective:
         # absolute upper and lower bounds on search space
         self.lb = lb
         self.ub = ub
-        self.path_to_vae_statedict = path_to_vae_statedict
         self.max_string_length = max_string_length
         self.guacamol_obj_func = guacamol_objs[guacamol_task_id].objective
         self.initialize_vae()
@@ -106,10 +102,10 @@ class GuacamolObjective:
         self.dataobj = SELFIESDataset()
         self.vae = InfoTransformerVAE(dataset=self.dataobj)
         # load in state dict of trained model:
-        if self.path_to_vae_statedict:
-            self.path_to_vae_statedict = "/Users/Colin/code/aabo/tasks/utils/selfies_vae/selfies-vae-state-dict.pt"
-            state_dict = torch.load(self.path_to_vae_statedict) 
-            self.vae.load_state_dict(state_dict, strict=True) 
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        vae_file_path = os.path.join(base_dir, 'utils', 'selfies_vae', 'selfies-vae-state-dict.pt')
+        state_dict = torch.load(vae_file_path) 
+        self.vae.load_state_dict(state_dict, strict=True) 
         self.vae = self.vae.eval()
         # set max string length that VAE can generate
         self.vae.max_string_length = self.max_string_length

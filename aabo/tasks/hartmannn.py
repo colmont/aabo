@@ -1,8 +1,7 @@
 import torch
-import sys 
-sys.path.append("../")
-from tasks.objective import Objective
 from botorch.test_functions import Hartmann
+
+from aabo.tasks.objective import Objective
 
 
 class Hartmann6D(Objective):

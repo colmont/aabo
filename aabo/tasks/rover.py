@@ -1,8 +1,7 @@
 import torch 
-import sys 
-sys.path.append("../")
-from tasks.objective import Objective
-from tasks.utils.rover_utils import create_large_domain, ConstantOffsetFn
+
+from aabo.tasks.objective import Objective
+from aabo.tasks.utils.rover_utils import create_large_domain, ConstantOffsetFn
 
 
 class RoverObjective(Objective):

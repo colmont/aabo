@@ -1,10 +1,10 @@
+import copy 
 import torch
 from torch.quasirandom import SobolEngine
 from botorch.acquisition import qExpectedImprovement
 from botorch.acquisition.logei import qLogExpectedImprovement
 from botorch.optim import optimize_acqf
 from botorch.generation.sampling import MaxPosteriorSampling
-import copy 
 
 def generate_batch(
     model,

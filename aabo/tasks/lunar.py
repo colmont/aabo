@@ -1,11 +1,10 @@
 import numpy as np
 import torch 
-import sys 
-sys.path.append("../")
-from tasks.objective import Objective
 import multiprocess as mp
 from collections.abc import Iterable 
-from tasks.utils.lunar_utils import simulate_lunar_lander
+
+from aabo.tasks.utils.lunar_utils import simulate_lunar_lander
+from aabo.tasks.objective import Objective
 
 
 class LunarLanderObjective(Objective):

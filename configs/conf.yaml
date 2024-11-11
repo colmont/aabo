@@ -6,6 +6,7 @@ seed: 42
 #   - benchmark: hartmann6
 
 # general
+debug: true
 float_dtype_as_int: 64
 verbose: true
 wandb_entity: ""

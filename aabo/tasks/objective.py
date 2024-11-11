@@ -1,4 +1,3 @@
-# Parent class for differnet Objectives/ tasks
 import numpy as np
 import torch
 

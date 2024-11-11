@@ -1,29 +1,34 @@
-import sys
-sys.path.append("../")
-from svgp.model import GPModel
-from utils.model_loader import get_inducing_points
-import gpytorch
-import wandb 
+import os
+import warnings
 import torch
 import hydra
-from omegaconf import DictConfig, OmegaConf
-import warnings
-warnings.filterwarnings('ignore')
-import os
-os.environ["WANDB_SILENT"] = "True"
-import signal 
-from svgp.generate_candidates import generate_batch
-from svgp.train_model import (
-    update_model_elbo, 
-    update_model_and_generate_candidates_eulbo,
-)
-from utils.setup import handle_interrupt, set_device, set_dtype, set_seed, set_wandb_tracker, validate_config 
-from utils.data_loader import get_objective, get_random_init_data
-from utils.turbo import TurboState, update_state
-# for exact gp baseline: 
+from omegaconf import DictConfig
 from botorch.models import SingleTaskGP
 from botorch.fit import fit_gpytorch_mll
 from gpytorch.mlls import ExactMarginalLogLikelihood
+from gpytorch.kernels import ScaleKernel, RBFKernel
+from gpytorch.likelihoods import GaussianLikelihood
+
+from aabo.svgp.model import GPModel
+from aabo.svgp.generate_candidates import generate_batch
+from aabo.svgp.train_model import (
+    update_model_elbo, 
+    update_model_and_generate_candidates_eulbo,
+)
+from aabo.utils.model_loader import get_inducing_points
+from aabo.utils.data_loader import get_objective, get_random_init_data
+from aabo.utils.turbo import TurboState, update_state
+from aabo.utils.setup import (
+    validate_config,
+    set_seed,
+    set_dtype,
+    set_device,
+    set_wandb_tracker,
+    handle_interrupt,
+)
+
+warnings.filterwarnings('ignore')
+os.environ["WANDB_SILENT"] = "True"
 
 @hydra.main(config_path='../configs', config_name='conf')
 def main(cfg: DictConfig):
@@ -71,8 +76,8 @@ def main(cfg: DictConfig):
         model = SingleTaskGP(
             train_x, 
             train_y, 
-            covar_module=gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel()),
-            likelihood=gpytorch.likelihoods.GaussianLikelihood(),
+            covar_module=ScaleKernel(RBFKernel()),
+            likelihood=GaussianLikelihood(),
         )
     # Initialize approximate GP model 
     else:
@@ -85,7 +90,7 @@ def main(cfg: DictConfig):
         learn_inducing_locations = not cfg.moss23_baseline
         model = GPModel(
             inducing_points=inducing_points, 
-            likelihood=gpytorch.likelihoods.GaussianLikelihood(),
+            likelihood=GaussianLikelihood(),
             learn_inducing_locations=learn_inducing_locations,
         )
 
@@ -121,7 +126,7 @@ def main(cfg: DictConfig):
 
         # Train exact GP model (until convergence)
         if cfg.exact_gp_baseline:
-            model.set_train_data(train_x, train_y, strict=False)
+            model.set_train_data(train_x, train_y.squeeze(), strict=False)
             exact_gp_mll = ExactMarginalLogLikelihood(model.likelihood, model)
             fit_gpytorch_mll(exact_gp_mll)
 

@@ -1,9 +1,8 @@
 import torch
-import sys 
 import numpy as np
-sys.path.append("../")
-from tasks.objective import Objective
-import LassoBench
+
+from aabo.tasks.objective import Objective
+from aabo.LassoBench import LassoBench
 
 class LassoDNA(Objective):
     """

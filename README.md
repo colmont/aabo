@@ -33,6 +33,10 @@ Afterwards, install all other necessary packages using pip:
 pip install swig
 pip install -r requirements.txt
 ```
+Lastly, install the `aabo` package in editable mode:
+```Bash
+pip install . -e
+```
 
 ### LassoBench DNA Task
 The above nmaus/opt docker image has all needed requirements to run all tasks in the paper except for the LassoBench DNA task. This task requires the following additional steps to setup. These steps can be done after initializing the nmaus/opt docker image which has all other requirements for running AABO. 

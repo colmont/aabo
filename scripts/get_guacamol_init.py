@@ -1,14 +1,12 @@
-import sys 
-sys.path.append("../")
-from tasks.utils.selfies_vae.data import SELFIESDataset
-from tasks.utils.selfies_vae.model_positional_unbounded import InfoTransformerVAE
+import torch 
 import pandas as pd 
 import selfies as sf 
-import torch 
-from tasks.utils.selfies_vae.data import collate_fn
+from guacamol import standard_benchmarks
 from torch.utils.data import TensorDataset, DataLoader
 
-from guacamol import standard_benchmarks
+from aabo.tasks.utils.selfies_vae.data import SELFIESDataset
+from aabo.tasks.utils.selfies_vae.model_positional_unbounded import InfoTransformerVAE
+from aabo.tasks.utils.selfies_vae.data import collate_fn
 
 med1 = standard_benchmarks.median_camphor_menthol() #'Median molecules 1'
 med2 = standard_benchmarks.median_tadalafil_sildenafil() #'Median molecules 2',

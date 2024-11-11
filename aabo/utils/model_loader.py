@@ -1,7 +1,8 @@
 import torch
 import gpytorch
-from svgp.model import GPModel
-from utils.set_inducing_points_with_moss23 import get_optimal_inducing_points
+
+from aabo.svgp.model import GPModel
+from aabo.utils.set_inducing_points_with_moss23 import get_optimal_inducing_points
 
 def get_inducing_points(
     train_x,

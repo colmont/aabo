@@ -1,12 +1,12 @@
-import os 
 from math import log
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint, RichProgressBar
 import torch
 from torch import Tensor, nn
 from torch.nn import functional as F
-from tasks.utils.selfies_vae.data import SELFIESDataModule, SELFIESDataset
 from torch.optim import Adam
+
+from aabo.tasks.utils.selfies_vae.data import SELFIESDataModule, SELFIESDataset
 
 BATCH_SIZE = 256
 ENCODER_LR = 1e-3

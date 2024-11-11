@@ -1,7 +1,6 @@
 import torch 
-import sys 
-sys.path.append("../")
-from utils.mossetal_inducing_pts_init import GreedyImprovementReduction
+
+from aabo.utils.mossetal_inducing_pts_init import GreedyImprovementReduction
 
 
 def get_optimal_inducing_points(model, prev_inducing_points):
