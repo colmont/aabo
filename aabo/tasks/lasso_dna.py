@@ -2,7 +2,7 @@ import torch
 import numpy as np
 
 from aabo.tasks.objective import Objective
-from aabo.LassoBench import LassoBench
+from aabo.tasks.utils.LassoBench import LassoBench
 
 class LassoDNA(Objective):
     """
