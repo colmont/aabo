@@ -95,7 +95,7 @@ def get_expected_log_utility_ei(
             log_utility = torch.log(softplus_func(y - best_f)) 
         return log_utility
     
-    ghq = GaussHermiteQuadrature1D()
+    ghq = GaussHermiteQuadrature1D().to(output.mean.device)
     expected_log_utility = ghq(log_utility, output)
             
     return expected_log_utility
