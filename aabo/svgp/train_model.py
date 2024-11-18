@@ -47,8 +47,12 @@ def update_model_elbo(
     )
     train_bsz = min(len(train_y),train_bsz)
     train_dataset = TensorDataset(train_x, train_y)
-    train_loader = DataLoader(train_dataset, batch_size=train_bsz, shuffle=True)  # won't work for GPU
-    # train_loader = DataLoader(train_dataset, batch_size=train_bsz, shuffle=True, generator=torch.Generator(device=device))  # different seed results than in paper
+    if device == "cuda":
+        # different seed results than oringinal AABO paper codebase
+        train_loader = DataLoader(train_dataset, batch_size=train_bsz, shuffle=True, generator=torch.Generator(device=device))
+    else:
+        # won't work for GPU
+        train_loader = DataLoader(train_dataset, batch_size=train_bsz, shuffle=True)
     lowest_loss = torch.inf 
     n_failures_improve_loss = 0
     epochs_trained = 0
@@ -140,8 +144,12 @@ def update_model_and_generate_candidates_eulbo(
     init_x_next = init_x_next.to(device) 
     train_bsz = min(len(train_y),train_bsz)
     train_dataset = TensorDataset(train_x, train_y)
-    train_loader = DataLoader(train_dataset, batch_size=train_bsz, shuffle=True)  # won't work for GPU
-    # train_loader = DataLoader(train_dataset, batch_size=train_bsz, shuffle=True, generator=torch.Generator(device=device))  # different seed results than in paper
+    if device == "cuda":
+        # different seed results than oringinal AABO paper codebase
+        train_loader = DataLoader(train_dataset, batch_size=train_bsz, shuffle=True, generator=torch.Generator(device=device))
+    else:
+        # won't work for GPU
+        train_loader = DataLoader(train_dataset, batch_size=train_bsz, shuffle=True)
     model_state_before_update = copy.deepcopy(model.state_dict())
     n_failures = 0
     success = False 
