@@ -25,6 +25,7 @@ update_on_n_pts: 100
 
 # only elbo
 n_update_epochs: 5
+natural_gradient: false
 
 # only eulbo
 x_next_lr: 0.001
@@ -46,3 +47,5 @@ init_mol_tasks_w_guacamol_data: false
 
 #FIXME: add something about how to choose the acquisition function for warm start only?
 #FIXME: or simply add KG from botorch to warm start options?
+
+#FIXME: what about turning turbo off for hartmann6d?
