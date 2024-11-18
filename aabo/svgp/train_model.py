@@ -1,4 +1,4 @@
-import copy 
+import copy
 import torch
 from torch.utils.data import TensorDataset, DataLoader
 from torch.autograd import Variable 
@@ -8,6 +8,7 @@ from aabo.utils.get_turbo_lb_ub import get_turbo_lb_ub
 from aabo.utils.compute_expected_log_utility import get_expected_log_utility_x_next
 from aabo.utils.get_kg_samples_and_zs import get_kg_samples_and_zs
 from aabo.utils.set_inducing_points_with_moss23 import set_inducing_points_with_moss23
+from aabo.svgp.optimizers import OptimizerELBO, OptimizerEULBO 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -25,6 +26,8 @@ def update_model_elbo(
     max_allowed_n_epochs=100,
     moss23_baseline=False,
     ppgpr=False,
+    natural_gradient=False,
+    alternate_elbo_updates=False,
 ):
     # Define which MLL to use
     if mll is None:
@@ -35,7 +38,13 @@ def update_model_elbo(
 
     # Set-up model and training data
     model.train()
-    optimizer = torch.optim.Adam([{'params': model.parameters(), 'lr': lr} ], lr=lr)
+    optimizer = OptimizerELBO(
+        model=model,
+        num_data=train_y.size(0),
+        lr=lr,
+        natural_gradient=natural_gradient,
+        alternating_updates=alternate_elbo_updates,
+    )
     train_bsz = min(len(train_y),train_bsz)
     train_dataset = TensorDataset(train_x, train_y)
     train_loader = DataLoader(train_dataset, batch_size=train_bsz, shuffle=True)  # won't work for GPU
@@ -110,6 +119,7 @@ def update_model_and_generate_candidates_eulbo(
     tr_length=None,
     use_botorch_stable_log_softplus=False,
     ppgpr=False,
+    natural_gradient=False,
 ):
     # Set Turbo bounds
     if use_turbo: 
@@ -137,7 +147,7 @@ def update_model_and_generate_candidates_eulbo(
     success = False 
 
     # Attempt to update model
-    while (n_failures < 8) and (not success):
+    while (n_failures < 1) and (not success):
         try:
             model, x_next = eulbo_training_loop(
                 dim=train_x.shape[-1],
@@ -164,6 +174,7 @@ def update_model_and_generate_candidates_eulbo(
                 ablation2_fix_hypers=ablation2_fix_hypers,
                 ppgpr=ppgpr,
                 n_train=train_x.size(-2),
+                natural_gradient=natural_gradient,
             )
             success = True
 
@@ -212,6 +223,7 @@ def eulbo_training_loop(
     ablation1_fix_indpts_and_hypers=False,
     ablation2_fix_hypers=False,
     ppgpr=False,
+    natural_gradient=False,
 ):
     # Set-up model and x_next
     model.train()
@@ -225,14 +237,6 @@ def eulbo_training_loop(
         else:
             mll = VariationalELBO(model.likelihood, model, num_data=n_train)
 
-    # Define which parameters to update
-    if ablation1_fix_indpts_and_hypers: 
-        model_params_to_update = model.variational_parameters() 
-    elif ablation2_fix_hypers: 
-        model_params_to_update = list(model.variational_parameters()) + [model.variational_strategy.inducing_points]
-    else:
-        model_params_to_update = model.parameters()
-
     # Define training loop
     lowest_loss = torch.inf 
     n_failures_improve_loss = 0
@@ -242,10 +246,18 @@ def eulbo_training_loop(
         continue_training_condition = False 
     currently_training_model = True 
 
-    # Define optimizers: alternate or joint updates
-    x_next_optimizer = torch.optim.Adam([{'params': x_next},], lr=x_next_lr)
-    model_optimizer = torch.optim.Adam([{'params': model_params_to_update, 'lr':lr} ], lr=lr)
-    joint_optimizer = torch.optim.Adam([{'params': x_next,},{'params': model_params_to_update, 'lr':lr} ], lr=lr)
+    # Set-up optimizer
+    optimizer = OptimizerEULBO(
+        model=model,
+        x_next=x_next,
+        num_data=n_train,
+        lr=lr,
+        x_next_lr=x_next_lr,
+        natural_gradient=natural_gradient,
+        alternating_updates=alternate_updates,
+        ablation1_fix_indpts_and_hypers=ablation1_fix_indpts_and_hypers,
+        ablation2_fix_hypers=ablation2_fix_hypers,
+    )
 
     # Define variables for KG and EI
     base_samples = None
@@ -271,11 +283,7 @@ def eulbo_training_loop(
         for (inputs, scores) in train_loader:
 
             # Update model and x_next
-            if alternate_updates:
-                model_optimizer.zero_grad()
-                x_next_optimizer.zero_grad()
-            else:
-                joint_optimizer.zero_grad()
+            optimizer.zero_grad(currently_training_model)
 
             # Define loss and gradients
             output = model(inputs)
@@ -300,14 +308,8 @@ def eulbo_training_loop(
                 torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=grad_clip)
                 torch.nn.utils.clip_grad_norm_(x_next, max_norm=grad_clip)
 
-            # Take gradient step
-            if alternate_updates:
-                if currently_training_model: 
-                    model_optimizer.step() 
-                else:
-                    x_next_optimizer.step()
-            else:
-                joint_optimizer.step()
+            # Update model and x_next
+            optimizer.step(currently_training_model)
             
             # Update total loss
             with torch.no_grad():   

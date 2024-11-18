@@ -92,6 +92,7 @@ def main(cfg: DictConfig):
             inducing_points=inducing_points, 
             likelihood=GaussianLikelihood(),
             learn_inducing_locations=learn_inducing_locations,
+            natural_gradient=cfg.natural_gradient,
         )
 
     # Main loop
@@ -154,6 +155,7 @@ def main(cfg: DictConfig):
                     max_allowed_n_epochs=cfg.max_allowed_n_epochs,
                     moss23_baseline=cfg.moss23_baseline,
                     ppgpr=cfg.ppgpr,
+                    natural_gradient=cfg.natural_gradient,
                 )
             model = update_model_dict["model"]
 
@@ -199,6 +201,7 @@ def main(cfg: DictConfig):
                 tr_length=tr_state.length,
                 use_botorch_stable_log_softplus=cfg.acq_fun.use_botorch_stable_log_softplus,
                 ppgpr=cfg.ppgpr,
+                natural_gradient=cfg.natural_gradient,
             )
             model = update_model_dict["model"]
             x_next = update_model_dict["x_next"]

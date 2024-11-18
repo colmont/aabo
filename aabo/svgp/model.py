@@ -2,13 +2,15 @@ from gpytorch.means import ConstantMean
 from gpytorch.kernels import ScaleKernel, RBFKernel
 from gpytorch.distributions import MultivariateNormal
 from gpytorch.models import ApproximateGP
-from gpytorch.variational import CholeskyVariationalDistribution
-from gpytorch.variational import VariationalStrategy
+from gpytorch.variational import CholeskyVariationalDistribution, NaturalVariationalDistribution, VariationalStrategy
 from botorch.posteriors.gpytorch import GPyTorchPosterior
 
 class GPModel(ApproximateGP):
-    def __init__(self, inducing_points, likelihood, learn_inducing_locations=True):
-        variational_distribution = CholeskyVariationalDistribution(inducing_points.size(0) )
+    def __init__(self, inducing_points, likelihood, learn_inducing_locations=True, natural_gradient=False):
+        if natural_gradient:
+            variational_distribution = NaturalVariationalDistribution(inducing_points.size(0)) 
+        else:
+            variational_distribution = CholeskyVariationalDistribution(inducing_points.size(0) )
         variational_strategy = VariationalStrategy(
             self,
             inducing_points,
