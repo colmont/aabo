@@ -42,6 +42,7 @@ pip install . -e
 The above nmaus/opt docker image has all needed requirements to run all tasks in the paper except for the LassoBench DNA task. This task requires the following additional steps to setup. These steps can be done after initializing the nmaus/opt docker image which has all other requirements for running AABO. 
 
 ```Bash
+cd aabo/tasks/utils
 git clone https://github.com/ksehic/LassoBench.git
 cd LassoBench/
 pip install -e .
