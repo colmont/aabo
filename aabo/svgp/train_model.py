@@ -47,7 +47,7 @@ def update_model_elbo(
     )
     train_bsz = min(len(train_y),train_bsz)
     train_dataset = TensorDataset(train_x, train_y)
-    if device == "cuda":
+    if device == torch.device("cuda"):
         # different seed results than oringinal AABO paper codebase
         train_loader = DataLoader(train_dataset, batch_size=train_bsz, shuffle=True, generator=torch.Generator(device=device))
     else:
@@ -144,7 +144,7 @@ def update_model_and_generate_candidates_eulbo(
     init_x_next = init_x_next.to(device) 
     train_bsz = min(len(train_y),train_bsz)
     train_dataset = TensorDataset(train_x, train_y)
-    if device == "cuda":
+    if device == torch.device("cuda"):
         # different seed results than oringinal AABO paper codebase
         train_loader = DataLoader(train_dataset, batch_size=train_bsz, shuffle=True, generator=torch.Generator(device=device))
     else:
