@@ -2,3 +2,4 @@ name: hartmann6
 bsz: 1
 max_n_oracle_calls: 2000
 num_initialization_points: 100
+use_turbo: false

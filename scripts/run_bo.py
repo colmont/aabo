@@ -116,14 +116,13 @@ def main(cfg: DictConfig):
         # Update wandb with optimization progress
         best_score_found = train_y_origscale.max().item()
         n_calls_ = objective.num_calls
-        if cfg.verbose:
-            print(f"After {n_calls_} oracle calls, Best reward = {best_score_found}")
-        # log data to wandb on each loop
         dict_log = {
             "best_found":best_score_found,
             "n_oracle_calls":n_calls_,
         }
         tracker.log(dict_log) 
+        if cfg.verbose:
+            print(f"After {n_calls_} oracle calls, Best reward = {best_score_found}")
 
         # Train exact GP model (until convergence)
         if cfg.exact_gp_baseline:
@@ -167,7 +166,7 @@ def main(cfg: DictConfig):
             batch_size=cfg.benchmark.bsz,
             acqf=cfg.acq_fun.name,
             absolute_bounds=(objective.lb, objective.ub),
-            use_turbo=cfg.use_turbo,
+            use_turbo=cfg.benchmark.use_turbo,
             tr_length=tr_state.length,
         )
 
@@ -197,7 +196,7 @@ def main(cfg: DictConfig):
                 num_mc_samples_qei=cfg.acq_fun.num_mc_samples_qei,
                 ablation1_fix_indpts_and_hypers=cfg.ablation1_fix_indpts_and_hypers,
                 ablation2_fix_hypers=cfg.ablation2_fix_hypers,
-                use_turbo=cfg.use_turbo,
+                use_turbo=cfg.benchmark.use_turbo,
                 tr_length=tr_state.length,
                 use_botorch_stable_log_softplus=cfg.acq_fun.use_botorch_stable_log_softplus,
                 ppgpr=cfg.ppgpr,
@@ -214,7 +213,7 @@ def main(cfg: DictConfig):
         train_y_origscale = torch.cat((train_y_origscale, y_next), dim=-2)
 
         # If running TuRBO, update trust region state 
-        if cfg.use_turbo:
+        if cfg.benchmark.use_turbo:
             tr_state = update_state(
                 state=tr_state, 
                 Y_next=y_next,

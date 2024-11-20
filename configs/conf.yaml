@@ -1,5 +1,5 @@
 defaults:
-  - benchmark: fexo
+  - benchmark: hartmann6
   - acq_fun: ei
 #   - model: default
 #   - acq_opt: highdim
@@ -41,11 +41,8 @@ inducing_pt_init_w_moss23: true
 exact_gp_baseline: false
 
 # other
-use_turbo: true
 normalize_ys: true
 init_mol_tasks_w_guacamol_data: false
 
 #FIXME: add something about how to choose the acquisition function for warm start only?
 #FIXME: or simply add KG from botorch to warm start options?
-
-#FIXME: what about turning turbo off for hartmann6d?
