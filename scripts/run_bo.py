@@ -126,7 +126,10 @@ def main(cfg: DictConfig):
 
         # Train exact GP model (until convergence)
         if cfg.exact_gp_baseline:
-            model.set_train_data(train_x, train_y.squeeze(), strict=False)
+            if cfg.lastn_for_exact_gp:
+                model.set_train_data(train_x_lastn, train_y_lastn.squeeze(), strict=False)
+            else:
+                model.set_train_data(train_x, train_y.squeeze(), strict=False)
             exact_gp_mll = ExactMarginalLogLikelihood(model.likelihood, model)
             fit_gpytorch_mll(exact_gp_mll)
 

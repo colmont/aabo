@@ -1,5 +1,5 @@
 defaults:
-  - benchmark: hartmann6
+  - benchmark: dna
   - acq_fun: ei
 #   - model: default
 #   - acq_opt: highdim
@@ -33,12 +33,13 @@ n_warm_start_epochs: 10
 alternate_eulbo_updates: true
 
 # models (see assertions)
-eulbo: true
+eulbo: false
 ablation1_fix_indpts_and_hypers: false
 ablation2_fix_hypers: false
 moss23_baseline: false
 inducing_pt_init_w_moss23: true
-exact_gp_baseline: false
+exact_gp_baseline: true
+lastn_for_exact_gp: true
 
 # other
 normalize_ys: true
