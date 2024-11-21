@@ -73,11 +73,11 @@ class OptimizerEULBO:
     
     def _get_params_to_update(self):
         if self.ablation1_fix_indpts_and_hypers: 
-            return self.model.variational_parameters() 
+            return list(self.model.variational_parameters())
         elif self.ablation2_fix_hypers: 
             return list(self.model.variational_parameters()) + [self.model.variational_strategy.inducing_points]
         else:
-            return self.model.parameters()
+            return list(self.model.parameters())
 
     def _get_optimizers(self):
         if self.natural_gradient:
