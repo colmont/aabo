@@ -1,7 +1,9 @@
 from gpytorch.optim import NGD
 from torch.optim import Adam
 
-#FIXME: add grad clip as part of this setup?
+#TODO: the natural gradient parts in both optimizers have not been tested properly, they need more attention
+
+#TODO: add grad clip as part of this setup?
 class OptimizerELBO:
     def __init__(self, model, num_data, lr=0.01, natural_gradient=False, alternating_updates=False):
         #TODO: assertion error in case NaturalVariationalDistribution is not used in model (natural_gradient=True)
@@ -38,7 +40,7 @@ class OptimizerELBO:
                 optimizer.step()
 
 
-#FIXME: add grad clip as part of this setup?
+#TODO: add grad clip as part of this setup?
 class OptimizerEULBO:
     def __init__(
         self, 
