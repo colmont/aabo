@@ -1,4 +1,3 @@
 name: kg
-num_kg_samples: 64
-num_mc_samples_qei: null
+num_mc_samples: 64
 use_botorch_stable_log_softplus: false

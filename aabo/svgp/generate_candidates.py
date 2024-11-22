@@ -45,7 +45,7 @@ def generate_batch(
     if acqf == "logei":
         qLogEI = qLogExpectedImprovement(model=model, best_f=Y.max())
         X_next, _ = optimize_acqf(qLogEI,bounds=torch.stack([lb, ub]),q=batch_size, num_restarts=num_restarts,raw_samples=raw_samples,)
-    elif acqf == "ei":
+    elif acqf == "ei" or acqf == "kg":  # in aabo paper, EI is used for warmstarting EULBO-KG
         ei = qExpectedImprovement(model, Y.max()) 
         X_next, _ = optimize_acqf(ei,bounds=torch.stack([lb, ub]),q=batch_size, num_restarts=num_restarts,raw_samples=raw_samples,)
     elif acqf == "ts":

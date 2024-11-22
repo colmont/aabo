@@ -5,8 +5,7 @@ from torch.autograd import Variable
 from gpytorch.mlls import VariationalELBO, PredictiveLogLikelihood
 
 from aabo.utils.get_turbo_lb_ub import get_turbo_lb_ub
-from aabo.utils.compute_expected_log_utility import get_expected_log_utility_x_next
-from aabo.utils.get_kg_samples_and_zs import get_kg_samples_and_zs
+from aabo.utils.compute_expected_log_utility import ExpectedLogUtility
 from aabo.utils.set_inducing_points_with_moss23 import set_inducing_points_with_moss23
 from aabo.svgp.optimizers import OptimizerELBO, OptimizerEULBO 
 
@@ -114,9 +113,8 @@ def update_model_and_generate_candidates_eulbo(
     max_allowed_n_failures_improve_loss=10,
     max_allowed_n_epochs=100,
     alternate_updates=True,
-    num_kg_samples=64, 
-    acq_fun="KG",
-    num_mc_samples_qei=64,
+    acq_fun="ei",
+    num_mc_samples=64,
     ablation1_fix_indpts_and_hypers=False,
     ablation2_fix_hypers=False,
     use_turbo=True,
@@ -155,11 +153,10 @@ def update_model_and_generate_candidates_eulbo(
     success = False 
 
     # Attempt to update model
-    while (n_failures < 1) and (not success):
+    while (n_failures < 1) and (not success):  # change to (n_failures < 1) for KG
         try:
             model, x_next = eulbo_training_loop(
                 dim=train_x.shape[-1],
-                num_kg_samples=num_kg_samples,
                 model=model,
                 mll=mll,
                 init_x_next=init_x_next,
@@ -172,7 +169,7 @@ def update_model_and_generate_candidates_eulbo(
                 acq_fun=acq_fun, 
                 acquisition_bsz=acquisition_bsz,
                 normed_best_f=normed_best_f,
-                num_mc_samples_qei=num_mc_samples_qei,
+                num_mc_samples=num_mc_samples,
                 use_botorch_stable_log_softplus=use_botorch_stable_log_softplus,
                 lb=lb,
                 ub=ub,
@@ -219,13 +216,12 @@ def eulbo_training_loop(
     acq_fun,
     acquisition_bsz,
     normed_best_f,
-    num_mc_samples_qei,
+    num_mc_samples,
     use_botorch_stable_log_softplus,
     lb,
     ub,
     n_train,
     dim,
-    num_kg_samples,
     grad_clip=2.0,
     alternate_updates=True,
     ablation1_fix_indpts_and_hypers=False,
@@ -267,23 +263,18 @@ def eulbo_training_loop(
         ablation2_fix_hypers=ablation2_fix_hypers,
     )
 
-    # Define variables for KG and EI
-    base_samples = None
-    kg_samples = None
-    zs = None 
-    if acq_fun == "kg":
-        kg_samples, zs = get_kg_samples_and_zs(
-            model=model,
-            dim=dim,
-            ub=ub,
-            lb=lb,
-            num_kg_samples=num_kg_samples,
-            acquisition_bsz=acquisition_bsz,
-        )
-    elif acq_fun == "ei":
-        base_samples = torch.randn(num_mc_samples_qei, acquisition_bsz)
-    else:
-        raise ValueError(f"Invalid acquisition function: {acq_fun}")
+    # Initialise expected log utility class
+    elu_class = ExpectedLogUtility(
+        acq_fun=acq_fun,
+        acquisition_bsz=acquisition_bsz,
+        normed_best_f=normed_best_f,
+        num_mc_samples=num_mc_samples,
+        dim=dim,
+        lb=lb,
+        ub=ub,
+        model=model,
+        use_botorch_stable_log_softplus=use_botorch_stable_log_softplus,
+    )
 
     # Training loop
     while continue_training_condition:
@@ -296,19 +287,8 @@ def eulbo_training_loop(
             # Define loss and gradients
             output = model(inputs)
             nelbo = -mll(output, scores)
-            expected_log_utility_x_next = get_expected_log_utility_x_next(
-                acq_fun=acq_fun, 
-                acquisition_bsz=acquisition_bsz,
-                model=model,
-                x_next=x_next,
-                kg_samples=kg_samples,
-                zs=zs,
-                normed_best_f=normed_best_f,
-                base_samples=base_samples,
-                num_mc_samples_qei=num_mc_samples_qei,
-                use_botorch_stable_log_softplus=use_botorch_stable_log_softplus,
-            )
-            loss = nelbo - expected_log_utility_x_next
+            elu = elu_class(model, x_next)
+            loss = nelbo - elu
             loss.backward()
 
             # Clip gradients 
